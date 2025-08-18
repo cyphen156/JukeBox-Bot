@@ -1,0 +1,11 @@
+{
+  "name": "JukeBox-Bot",
+  "version": "1.0.0",
+  "description": "ToyProject : Discord JukeBox-Bot",
+  "main": "index.js",
+  "author": "Cyphen156",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.21.0"
+  }
+}

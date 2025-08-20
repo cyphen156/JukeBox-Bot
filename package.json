@@ -6,7 +6,9 @@
   "author": "Cyphen156",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.21.0"
+    "@discordjs/voice": "0.17.0",
+    "discord.js": "^14.21.0",
+    "play-dl": "^1.9.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

@@ -2,9 +2,9 @@ const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('remove')
-    .setDescription('곡 제거'),
+    .setName('add')
+    .setDescription('큐에 추가'),
   async execute(interaction) {
-    await interaction.reply('remove');
+    await interaction.reply('add');
   },
 };

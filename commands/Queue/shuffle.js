@@ -1,10 +1,14 @@
 const { SlashCommandBuilder } = require('discord.js');
+const Jukebox = require('../../jukebox');
 
-module.exports = {
+module.exports =
+{
   data: new SlashCommandBuilder()
     .setName('shuffle')
-    .setDescription('재생 목록 섞기'),
-  async execute(interaction) {
-    await interaction.reply('shuffle');
-  },
+    .setDescription('대기열 셔플'),
+  async execute(interaction)
+  {
+    Jukebox.shuffle(interaction.guildId);
+    await interaction.reply('🔀 셔플 완료');
+  }
 };

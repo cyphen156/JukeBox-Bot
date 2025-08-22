@@ -234,9 +234,15 @@ async function resolveVideo(input, opts)
     }
 }
 
+function streamVideo()
+{
+
+}
+
 module.exports =
 {
     resolveVideo,
+    streamVideo,
     _internals:
     {
         toUrl,

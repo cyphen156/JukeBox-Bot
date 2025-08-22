@@ -50,7 +50,7 @@ async function play(gid, input = null, requestedBy = null)
     }
 
     console.log("before skip:", Queue.snapshot(gid));
-    const track = await Player.skip(gid); // 반드시 await
+    const track = await Player.skip(gid);
     console.log("after skip:", track);
 
     return { ok: true, code: 'PLAY_BY_INPUT', meta: track };

@@ -1,4 +1,11 @@
 /**
+ * 길드 플레이리스트 카탈로그 스키마
+ * // 플레이리스트 Create, Delete할때만 수정
+ * // 그 외의 경우에는 항상 누구나 조회 가능
+ * - version
+ */
+
+/**
  * 플레이리스트 파일 스키마
  * - guildId: string
  * - userId: string
@@ -30,12 +37,13 @@ function normalizeTrack(t)
     return { url, title, videoId };
 }
 
-function newDocument({ guildId, userId, playlistName })
+function newDocument({ guildId, userId, userName, playlistName })
 {
     return {
         version     : SCHEMA_VERSION,
         guildId     : String(guildId ?? ''),
         userId      : String(userId ?? ''),
+        userName    : String(userName ?? ''),
         playlistName: String(playlistName ?? ''),
         tracks      : [],
     };
@@ -53,6 +61,7 @@ function validateAndNormalize(doc)
         version     : Number(doc.version) || SCHEMA_VERSION,
         guildId     : typeof doc.guildId === 'string' ? doc.guildId : '',
         userId      : typeof doc.userId === 'string' ? doc.userId : '',
+        userName    : typeof doc.userName === 'string' ? doc.userName : '',
         playlistName: typeof doc.playlistName === 'string' ? doc.playlistName : '',
         tracks      : [],
     };

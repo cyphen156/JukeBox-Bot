@@ -42,7 +42,8 @@ const TEXT =
 /playlist delete  : 플레이리스트 삭제
 /playlist add     : 플레이리스트에 곡 추가
 /playlist remove  : 플레이리스트에서 곡 제거
-/playlist clear   : 플레이리스트 비우기`,
+/playlist clear   : 플레이리스트 비우기
+/playlist queue   : 플레이리스트 큐에 추가하기`,
 };
 
 function render(category)

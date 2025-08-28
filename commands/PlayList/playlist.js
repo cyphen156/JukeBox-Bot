@@ -5,10 +5,29 @@ const
 } = require('discord.js');
 
 const svc = require('../../services/playlistService');
+const jukebox = require('../../jukebox');
 
 async function reply(interaction, content)
 {
     await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+}
+
+function renderCatalogText(guildName, items) {
+  if (!items.length) return `📂 ${guildName}의 플레이리스트: (없음)`;
+  const byOwner = new Map();
+  for (const { userId, playlistName } of items) {
+    if (!byOwner.has(userId)) byOwner.set(userId, []);
+    byOwner.get(userId).push(playlistName);
+  }
+  const lines = [`📂 ${guildName}의 플레이리스트 (${items.length}개)`];
+  for (const uid of [...byOwner.keys()].sort()) {
+    const names = byOwner.get(uid).sort();
+    lines.push(`• <@${uid}> — ${names.length}개`);
+    lines.push(`  - ${names.join('\n ')}`);
+  }
+  let text = lines.join('\n');
+  if (text.length > 1900) text = text.slice(0, 1900) + '\n… (길이 제한으로 일부 생략)';
+  return text;
 }
 
 module.exports =
@@ -44,7 +63,11 @@ module.exports =
         .addSubcommand(sc =>
             sc.setName('clear')
               .setDescription('플레이리스트 비우기')
-              .addStringOption(o => o.setName('name').setDescription('플레이리스트 이름').setRequired(true))),
+              .addStringOption(o => o.setName('name').setDescription('플레이리스트 이름').setRequired(true)))
+        .addSubcommand(sc =>
+            sc.setName('queue')
+              .setDescription('플레이리스트 큐에 추가하기')
+              .addStringOption(o => o.setName('playlist').setDescription('플레이리스트 이름').setRequired(true))),
 
     async execute(interaction)
     {
@@ -57,14 +80,11 @@ module.exports =
         {
             switch (sub)
             {
-                case 'show':
-                {
-                    const list = await svc.showPlayList(gid, uid);
-                    if (!list?.length)
-                    {
-                        return reply(interaction, '📃 플레이리스트가 없습니다.');
-                    }
-                    return reply(interaction, `📃 플레이리스트 목록\n\`\`\`\n${list.join('\n')}\n\`\`\``);
+                case 'show': {
+                  const guildName = interaction.guild?.name || '이 서버';
+                  const items = await svc.showPlayList(gid); // [{ userId, playlistName }, ...]
+                  const text = renderCatalogText(guildName, items);
+                  return reply(interaction, text);
                 }
 
                 case 'create':
@@ -116,10 +136,52 @@ module.exports =
                     }
 
                     const body = info.tracks.length
-                        ? info.tracks.map((t, i) => `${i + 1}. ${t.title} (${t.videoId})`).join('\n')
+                        ? info.tracks.map((t, i) => `${i + 1}. ${t.title}`).join('\n')
                         : '(비어있음)';
 
-                    return reply(interaction, `ℹ️ \`${name}\` 상세 (총 ${info.count}곡)\n\`\`\`\n${body}\n\`\`\``);
+                    return reply(interaction, `ℹ️ \`${name}\` 정보 (총 ${info.count}곡)\n\`\`\`\n${body}\n\`\`\``);
+                }
+
+                case 'queue':
+                {
+                    const playlistName = interaction.options.getString('playlist', true);
+                    const gid = interaction.guildId;
+                    const uid = interaction.user.id;
+                    const requestedBy = interaction.user.tag;
+
+                    await interaction.deferReply({ ephemeral: true });
+
+                    const info = await svc.infoPlayList(gid, uid, playlistName);
+                    if (!info) 
+                    {
+                        return interaction.editReply(`⚠️ \`${playlistName}\` 을(를) 찾을 수 없습니다.`);
+                    }
+                    if (!Array.isArray(info.tracks) || info.tracks.length === 0) 
+                    {
+                        return interaction.editReply(`📭 \`${playlistName}\` 은(는) 비어 있습니다.`);
+                    }
+
+                    try 
+                    {
+                        const r = await jukebox.addPlaylist({ guildId: gid, tracks: info.tracks }, { requestedBy });
+
+                        if (!r.ok) 
+                        {
+                            return interaction.editReply('❌ 큐 추가 실패');
+                        }
+
+                        const suffix = r.preview?.length ? `\n추가된 곡: \n${r.preview.join('\n ')}` : '';
+                        return interaction.editReply(
+                            `▶️ \`${playlistName}\` 대기열에 ${r.added}곡 추가 완료`
+                            + (r.failed ? ` (실패 ${r.failed}곡)` : '')
+                            + suffix
+                        );
+                    } 
+                    catch (e) 
+                    {
+                        console.error('[playlist/queue] add failed:', e);
+                        return interaction.editReply('❌ 큐 추가 중 오류가 발생했습니다.');
+                    }
                 }
             }
         }

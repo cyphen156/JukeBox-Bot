@@ -1,4 +1,3 @@
-// components/jukebox.js
 const Queue = require('./components/queue');
 const Player = require('./components/player');
 const State = require('./components/state');
@@ -16,6 +15,56 @@ async function add(gid, input, requestedBy)
     });
 
     return meta;
+}
+function normalizeMeta(t) 
+{
+    const url = typeof t.url === 'string' ? t.url : '';
+    const title = typeof t.title === 'string' ? t.title : '';
+    const videoId = typeof t.videoId === 'string' ? t.videoId : '';
+    if (!title && !videoId && !url) 
+    {
+        throw new Error('invalid track meta');
+    }
+    return { url, title, videoId };
+}
+
+async function addPlaylist(payload, opts = {}) 
+{
+    const guildId = String(payload?.guildId ?? '');
+    const tracks  = Array.isArray(payload?.tracks) ? payload.tracks : [];
+    const requestedBy = opts?.requestedBy ?? 'unknown';
+
+    if (!guildId) 
+    {
+        return { ok: false, code: 'INVALID_GUILD', added: 0, failed: 0, preview: [] };
+    }
+    if (!tracks.length) 
+    {
+        return { ok: false, code: 'EMPTY', added: 0, failed: 0, preview: [] };
+    }
+    let added = 0, failed = 0;
+    for (const t of tracks) 
+    {
+        try 
+        {
+            const meta = normalizeMeta(t);
+            Queue.push(guildId, { ...meta, requestedBy });
+            added++;
+        } 
+        catch (e) 
+        {
+            console.error('[jukebox.addPlaylist] push failed:', e);
+            failed++;
+        }
+    }
+
+    return {
+        ok: true,
+        code: 'BULK_ENQUEUED',
+        added,
+        failed,
+        preview: tracks.slice(0, 3).map(x => x.title),
+    };
 }
 
 async function play(gid, input = null, requestedBy = null)
@@ -103,6 +152,7 @@ function status(gid)
 
 module.exports = {
     add,
+    addPlaylist,
     play,
     pause,
     resume,

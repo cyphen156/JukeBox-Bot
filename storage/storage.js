@@ -5,6 +5,7 @@ const { encryptJson, decryptJson } = require('./crypto');
 const doc = require('./schema/document');
 
 const BASE_DIR = path.join(process.cwd(), 'storage', 'data');
+const CATALOG_FILE = 'catalog.json';
 
 function ensureDir(dir)
 {
@@ -19,11 +20,74 @@ function playlistPath(guildId, userId, playlistName)
     return path.join(BASE_DIR, String(guildId), String(userId), `${playlistName}.json.enc`);
 }
 
+function catalogPath(guildId) 
+{
+    return path.join(BASE_DIR, String(guildId), CATALOG_FILE);
+}
+
 function lockKey(guildId, userId, playlistName)
 {
     return `pl:${guildId}:${userId}:${playlistName}`;
 }
 
+async function _scanGuildPlaylists(guildId)
+ {
+    const guildDir = path.join(BASE_DIR, String(guildId));
+    if (!fs.existsSync(guildDir))
+    {
+        return [];
+    }
+    const result = [];
+    const users = await fs.promises.readdir(guildDir);
+    for (const userId of users) 
+    {
+        const userDir = path.join(guildDir, userId);
+        if (!fs.lstatSync(userDir).isDirectory()) 
+        {
+            continue;
+        }
+        const files = await fs.promises.readdir(userDir);
+        for (const file of files) 
+        {
+            if (file.endsWith('.json.enc')) 
+            {
+                const playlistName = file.replace(/\.json\.enc$/, '');
+                result.push({ userId, playlistName });
+            }
+        }
+    }
+    return result.sort((a, b) => {
+        const u = a.userId.localeCompare(b.userId);
+        return u !== 0 ? u : a.playlistName.localeCompare(b.playlistName);
+    });
+}
+
+async function getGuildCatalog(guildId) 
+{
+    const p = catalogPath(guildId);
+    const dir = path.dirname(p);
+    ensureDir(dir);
+    if (!fs.existsSync(p)) 
+    {
+        const scanned = await _scanGuildPlaylists(guildId);
+        const payload = { version: 1, guildId: String(guildId), playlists: scanned };
+        await fs.promises.writeFile(p, JSON.stringify(payload, null, 2), 'utf8');
+        return payload.playlists;
+    }
+    const raw = await fs.promises.readFile(p, 'utf8');
+    const json = JSON.parse(raw);
+    const list = Array.isArray(json.playlists) ? json.playlists : [];
+    return list;
+}
+
+async function setGuildCatalog(guildId, list) 
+{
+    const p = catalogPath(guildId);
+    const dir = path.dirname(p);
+    ensureDir(dir);
+    const payload = { version: 1, guildId: String(guildId), playlists: list };
+    await fs.promises.writeFile(p, JSON.stringify(payload, null, 2), 'utf8');
+}
 
 async function readPlaylistDoc(guildId, userId, playlistName)
 {
@@ -80,6 +144,12 @@ async function listPlaylists(guildId, userId)
         .sort((a, b) => a.localeCompare(b));
 }
 
+async function listGuildPlaylists(guildId) 
+{
+    const list = await getGuildCatalog(guildId);
+    return list.map(x => ({ playlistName: x.playlistName, userId: x.userId }));
+}
+
 async function getPlaylistInfo(guildId, userId, playlistName)
 {
     const d = await readPlaylistDoc(guildId, userId, playlistName);
@@ -105,6 +175,20 @@ async function createPlaylist(guildId, userId, playlistName)
 
         const d = doc.newDocument({ guildId, userId, playlistName });
         await writePlaylistDoc(guildId, userId, playlistName, d);
+
+        // 카탈로그 업데이트 (Create 시에만)
+        const cat = await getGuildCatalog(guildId);
+        const exists = cat.some(x => x.userId === String(userId) && x.playlistName === String(playlistName));
+        if (!exists) 
+        {
+            cat.push({ userId: String(userId), playlistName: String(playlistName) });
+
+            cat.sort((a, b) => {
+                const u = a.userId.localeCompare(b.userId);
+                return u !== 0 ? u : a.playlistName.localeCompare(b.playlistName);
+            });
+            await setGuildCatalog(guildId, cat);
+        }
         return true;
     });
 }
@@ -121,6 +205,15 @@ async function deletePlaylist(guildId, userId, playlistName)
         }
 
         await fs.promises.unlink(p);
+
+        // 카탈로그 업데이트 (Delete 시에만)
+        const cat = await getGuildCatalog(guildId);
+        const next = cat.filter(x => !(x.userId === String(userId) && x.playlistName === String(playlistName)));
+        if (next.length !== cat.length)
+        {
+            await setGuildCatalog(guildId, next);
+        }
+
         return true;
     });
 }
@@ -195,6 +288,7 @@ module.exports =
     writePlaylistDoc,
 
     listPlaylists,
+    listGuildPlaylists,
     getPlaylistInfo,
 
     createPlaylist,

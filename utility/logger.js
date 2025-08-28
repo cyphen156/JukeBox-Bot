@@ -12,7 +12,7 @@ async function log(guildId
     {
         return;   
     }
-    const basePath = path.join(process.cwd(), 'storage', String(guildId), 'logs');
+    const basePath = path.join(process.cwd(), 'storage/data', String(guildId), 'logs');
     if (!fs.existsSync(basePath)) 
     {
         fs.mkdirSync(basePath, { recursive: true });

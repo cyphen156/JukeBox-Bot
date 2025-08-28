@@ -3,9 +3,10 @@ const db  = require('../storage/storage');
 const { log } = require('../utility/logger');
 const youtube = require('../components/youtube/youtube');
 
-async function showPlayList(gid, uid)
+async function showPlayList(gid)
 {
-    return db.listPlaylists(gid, uid);
+    const list = await db.listGuildPlaylists(gid);
+    return list;
 }
 
 async function infoPlayList(gid, uid, name)
@@ -37,7 +38,7 @@ async function clearPlaylist(gid, uid, name)
 
 async function addTrack(gid, uid, name, input, titleOpt)
 {
-    const track = await youtube.resolveTrack(input, { title: titleOpt });
+    const track = await youtube.resolveVideo(input, { title: titleOpt });
 
     const ok = await db.addTrack(gid, uid, name, track);
     await log(gid, {

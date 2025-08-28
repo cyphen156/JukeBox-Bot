@@ -151,8 +151,11 @@ function ensurePlayer(gid) {
 
   player.on('error', (err) => {
     console.error(`[player ${gid}] error:`, err);
-    void killProc(gid);
-    State.get(gid).apply(State.Event.FAIL);
+    void (async () => {
+      await killProc(gid);
+      State.get(gid).apply(State.Event.FAIL);
+      try { await playNext(gid); } catch (e) { console.error('[auto-skip]', e); }
+    })();
   });
 
   PLAYERS.set(gid, player);

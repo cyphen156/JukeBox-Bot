@@ -4,7 +4,7 @@ const
     MessageFlags,
 } = require('discord.js');
 
-const svc = require('../services/playlistService');
+const svc = require('../../services/playlistService');
 
 async function reply(interaction, content)
 {

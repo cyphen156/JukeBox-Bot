@@ -94,7 +94,7 @@ async function readPlaylistDoc(guildId, userId, playlistName)
     const p = playlistPath(guildId, userId, playlistName);
     if (!fs.existsSync(p))
     {
-        return doc.newDocument({ guildId, userId, playlistName });
+        return null;
     }
 
     const raw = await fs.promises.readFile(p, 'utf8');
@@ -153,6 +153,11 @@ async function listGuildPlaylists(guildId)
 async function getPlaylistInfo(guildId, userId, playlistName)
 {
     const d = await readPlaylistDoc(guildId, userId, playlistName);
+    if (!d) 
+    {
+        return null;
+    }
+
     return {
         guildId     : d.guildId,
         userId      : d.userId,
@@ -176,7 +181,6 @@ async function createPlaylist(guildId, userId, playlistName)
         const d = doc.newDocument({ guildId, userId, playlistName });
         await writePlaylistDoc(guildId, userId, playlistName, d);
 
-        // 카탈로그 업데이트 (Create 시에만)
         const cat = await getGuildCatalog(guildId);
         const exists = cat.some(x => x.userId === String(userId) && x.playlistName === String(playlistName));
         if (!exists) 
@@ -206,7 +210,6 @@ async function deletePlaylist(guildId, userId, playlistName)
 
         await fs.promises.unlink(p);
 
-        // 카탈로그 업데이트 (Delete 시에만)
         const cat = await getGuildCatalog(guildId);
         const next = cat.filter(x => !(x.userId === String(userId) && x.playlistName === String(playlistName)));
         if (next.length !== cat.length)
@@ -225,6 +228,10 @@ async function addTrack(guildId, userId, playlistName, track)
     {
         const d = await readPlaylistDoc(guildId, userId, playlistName);
 
+        if (!d) 
+        {
+            return false;
+        } 
         const nt = doc.newTrack(track);
         const nv = doc.validateAndNormalize({ ...d, tracks: [...d.tracks, nt] });
         if (!nv.ok)
@@ -243,7 +250,10 @@ async function removeTrack(guildId, userId, playlistName, index1)
     return withLock(key, async () =>
     {
         const d = await readPlaylistDoc(guildId, userId, playlistName);
-        if (d.tracks.length === 0) return false;
+        if (!d || d.tracks.length === 0) 
+        {
+            return false;
+        }
 
         let i = (index1 ?? d.tracks.length) - 1;
         i = Math.max(0, Math.min(i, d.tracks.length - 1));
@@ -267,6 +277,9 @@ async function clearTracks(guildId, userId, playlistName)
     return withLock(key, async () =>
     {
         const d = await readPlaylistDoc(guildId, userId, playlistName);
+        if (!d) {
+            return false;
+        }
         d.tracks = [];
 
         const nv = doc.validateAndNormalize(d);

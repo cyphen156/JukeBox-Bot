@@ -129,7 +129,7 @@ module.exports =
 
                 case 'info':
                 {
-                    const info = await svc.infoPlayList(gid, uid, name);
+                    const info = await svc.infoPlayList(gid, name);
                     if (!info)
                     {
                         return reply(interaction, `⚠️ \`${name}\` 을(를) 찾을 수 없습니다.`);
@@ -146,12 +146,11 @@ module.exports =
                 {
                     const playlistName = interaction.options.getString('playlist', true);
                     const gid = interaction.guildId;
-                    const uid = interaction.user.id;
                     const requestedBy = interaction.user.tag;
 
                     await interaction.deferReply({ ephemeral: true });
 
-                    const info = await svc.infoPlayList(gid, uid, playlistName);
+                    const info = await svc.infoPlayList(gid, playlistName);
                     if (!info) 
                     {
                         return interaction.editReply(`⚠️ \`${playlistName}\` 을(를) 찾을 수 없습니다.`);

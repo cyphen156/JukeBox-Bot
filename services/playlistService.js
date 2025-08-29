@@ -9,10 +9,15 @@ async function showPlayList(gid)
     return list;
 }
 
-async function infoPlayList(gid, uid, name)
+async function infoPlayList(gid, name)
 {
-    const info = await db.getPlaylistInfo(gid, uid, name);
-    return info;
+    const list = await db.listGuildPlaylists(gid);
+    const found = list.find(x => x.playlistName === name);
+    if (!found) 
+    {
+        return null;
+    }
+    return await db.getPlaylistInfo(gid, found.userId, name);
 }
 
 async function createPlayList(gid, uid, name)

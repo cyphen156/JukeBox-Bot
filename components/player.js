@@ -15,8 +15,11 @@ const PLAYERS = new Map();
 const PROC = new Map();
 const ATTACHED_CONN = new Set();
 
-const ytdlpPath = process.env.YTDLP_PATH
-    || path.resolve(__dirname, '../bin/yt-dlp.exe');
+const ytdlpPath = process.env.YTDLP_PATH || (
+  process.platform === "win32"
+    ? path.resolve(__dirname, "../bin/yt-dlp.exe")
+    : "yt-dlp"                                    
+);
 
 async function killProc(gid) {
   const p = PROC.get(gid);

@@ -157,30 +157,44 @@ function makePipeEncode(url) {
   return { ytdlp: y, ffmpeg: f, stdout: f.stdout, killAll, type: StreamType.WebmOpus };
 }
 
-function ensurePlayer(gid) {
-  if (PLAYERS.has(gid)) return PLAYERS.get(gid);
+function ensurePlayer(gid)
+{
+    if (PLAYERS.has(gid)) return PLAYERS.get(gid);
 
-  const player = createAudioPlayer({
-    behaviors: { noSubscriber: NoSubscriberBehavior.Pause }
-  });
+    const player = createAudioPlayer({
+        behaviors: { noSubscriber: NoSubscriberBehavior.Pause }
+    });
 
-  player.on(AudioPlayerStatus.Idle, () => {
-    void killProc(gid);
-    State.get(gid).apply(State.Event.END);
-    void playNext(gid);
-  });
+    // 곡이 끝났을 때만 END 이벤트
+    player.on(AudioPlayerStatus.Idle, () =>
+    {
+        log(`[${gid}] Track ended cleanly`);
+        void killProc(gid);
+        State.get(gid).apply(State.Event.END);
+        void playNext(gid);
+    });
 
-  player.on('error', (err) => {
-    console.error(`[player ${gid}] error:`, err);
-    void (async () => {
-      await killProc(gid);
-      State.get(gid).apply(State.Event.FAIL);
-      try { await playNext(gid); } catch (e) { console.error('[auto-skip]', e); }
-    })();
-  });
+    // 에러는 FAIL 이벤트
+    player.on('error', (err) =>
+    {
+        console.error(`[player ${gid}] error:`, err);
+        void (async () =>
+        {
+            await killProc(gid);
+            State.get(gid).apply(State.Event.FAIL);
+            try
+            {
+                await playNext(gid);
+            }
+            catch (e)
+            {
+                console.error('[auto-skip]', e);
+            }
+        })();
+    });
 
-  PLAYERS.set(gid, player);
-  return player;
+    PLAYERS.set(gid, player);
+    return player;
 }
 
 // async function makeAudioResource(url)

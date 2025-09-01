@@ -7,7 +7,7 @@ const {
 
 const { spawn } = require('child_process');
 const path = require('path');
-const ffmpegPath = require('ffmpeg-static')
+const ffmpegPath = process.platform === "linux" ? "ffmpeg" : require("ffmpeg-static");
 const Queue = require('./queue');
 const State = require('./state');
 

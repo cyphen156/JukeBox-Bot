@@ -16,15 +16,21 @@ const PROC = new Map();
 const ATTACHED_CONN = new Set();
 
 const fs = require("fs");
+
+const logDir = path.resolve(__dirname, "../storage/data/logs");
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
+
 const logStream = fs.createWriteStream(
-  path.resolve(__dirname, "../logs/service.log"),
+  path.join(logDir, "service.log"),
   { flags: "a" }
 );
 
 function log(...args) {
   const msg = `[${new Date().toISOString()}] ${args.join(" ")}`;
-  console.log(msg);
-  logStream.write(msg + "\n");
+  console.log(msg); 
+  logStream.write(msg + "\n"); 
 }
 
 const ytdlpPath = process.env.YTDLP_PATH || (

@@ -15,6 +15,18 @@ const PLAYERS = new Map();
 const PROC = new Map();
 const ATTACHED_CONN = new Set();
 
+const fs = require("fs");
+const logStream = fs.createWriteStream(
+  path.resolve(__dirname, "../logs/service.log"),
+  { flags: "a" }
+);
+
+function log(...args) {
+  const msg = `[${new Date().toISOString()}] ${args.join(" ")}`;
+  console.log(msg);
+  logStream.write(msg + "\n");
+}
+
 const ytdlpPath = process.env.YTDLP_PATH || (
   process.platform === "win32"
     ? path.resolve(__dirname, "../bin/yt-dlp.exe")
@@ -196,20 +208,26 @@ async function playNext(gid)
     if (!track)
     {
         State.get(gid).apply(State.Event.END);
+        log(`[${gid}] No track found, ending`);
         return null;
     }
 
     const conn = getVoiceConnection(gid);
     if (!conn)
     {
+        log(`[${gid}] VOICE_NOT_CONNECTED`);
         throw new Error('VOICE_NOT_CONNECTED');
     }
+
+    log(`[${gid}] Starting play: ${track.title} (${track.url})`);
 
     if (!ATTACHED_CONN.has(gid)) 
     {
         ATTACHED_CONN.add(gid);
         conn.on('stateChange', (_o, n) => {
-            if (n.status === VoiceConnectionStatus.Destroyed || n.status === VoiceConnectionStatus.Disconnected) {
+            if (n.status === VoiceConnectionStatus.Destroyed || n.status === VoiceConnectionStatus.Disconnected) 
+            {
+                log(`[${gid}] Connection destroyed/disconnected`);
                 void killProc(gid);
             }
         });
@@ -229,18 +247,25 @@ async function playNext(gid)
 
     if (typeof url !== 'string' || !url.startsWith('http'))
     {
+        log(`[${gid}] INVALID_TRACK_URL: ${String(url)}`);
         throw new Error('INVALID_TRACK_URL: ' + String(url));
     }
 
+    log(`[${gid}] Spawning yt-dlp fast pipe for ${url}`);
     const fast = makePipeFast(url);
     const okFast = await fast.ready;  
 
     let pipe, inputType;
-    if (okFast) {
+    if (okFast) 
+    {
+        log(`[${gid}] Fast pipe succeeded`);
         pipe = { ytdlp: fast.ytdlp, stdout: fast.stdout };
         inputType = fast.type;
-    } else {
+    } 
+    else 
+    {
         // 2) 폴백 (인코딩)
+        log(`[${gid}] Fast pipe failed, falling back to ffmpeg encode`);
         await fast.killAll();
         const enc = makePipeEncode(url);
         pipe = { ytdlp: enc.ytdlp, ffmpeg: enc.ffmpeg, stdout: enc.stdout };
@@ -248,19 +273,25 @@ async function playNext(gid)
     }
 
     const resource = createAudioResource(pipe.stdout, { inputType });
-    resource.playStream?.on('error', swallowPipeErr)
+    resource.playStream?.on('error', (err) => {
+        log(`[${gid}] Stream error: ${err.message || err}`);
+        swallowPipeErr(err);
+    });
 
     PROC.set(gid, {
         ...pipe,
         resource,
         killAll: async () => {
-        if (pipe.ffmpeg) {
+        if (pipe.ffmpeg) 
+        {
+            log(`[${gid}] Killing ffmpeg`); 
             try { pipe.ytdlp?.stdout?.unpipe?.(pipe.ffmpeg?.stdin); } catch {}
             try { pipe.ffmpeg?.stdin?.end?.(); } catch {}
             try { pipe.ffmpeg?.kill?.('SIGTERM'); } catch {}
             await new Promise(r => setTimeout(r, 120));
             try { pipe.ffmpeg?.kill?.('SIGKILL'); } catch {}
         }
+        log(`[${gid}] Killing yt-dlp`);
         try { pipe.ytdlp?.kill?.('SIGTERM'); } catch {}
         await new Promise(r => setTimeout(r, 100));
         try { pipe.ytdlp?.kill?.('SIGKILL'); } catch {}
@@ -271,6 +302,7 @@ async function playNext(gid)
     player.play(resource);
 
     State.get(gid).apply(State.Event.START);
+    log(`[${gid}] Playback started for ${track.title}`);
     return track;
 }
 

@@ -87,6 +87,10 @@ function makePipeFast(url) {
     url
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
+  y.stderr.on("data", (data) => {
+    log(`[yt-dlp fast] ${data}`);
+  });
+
   // 첫 바이트를 빨리 받으면 성공으로 간주
   const ready = new Promise((resolve) => {
     let resolved = false;
@@ -95,7 +99,6 @@ function makePipeFast(url) {
     y.once('close', (code) => { if (!resolved) { resolved = true; clearTimeout(to); resolve(false); } });
   });
 
-  // 에러는 조용히
   y.stdout.on('error', swallowPipeErr);
 
   const killAll = async () => {
@@ -130,6 +133,13 @@ function makePipeEncode(url) {
     'pipe:1'
   ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
+  y.stderr.on("data", (data) => {
+    log(`[yt-dlp encode] ${data}`);
+  });
+  f.stderr.on("data", (data) => {
+    log(`[ffmpeg] ${data}`);
+  });
+  
   y.stdout.pipe(f.stdin);
 
   const swallow = swallowPipeErr;

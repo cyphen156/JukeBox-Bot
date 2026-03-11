@@ -184,12 +184,12 @@ IP 로테이션 · VPN 우회 등 현실적인 해결책이 없어 현재는 필
 
 ## 상세 개발 과정
 
-- [#1 봇 생성하기](https://cyphen156.tistory.com)
-- [#2 봇 활성화 및 코드 적용](https://cyphen156.tistory.com)
-- [#3 명령어 배포](https://cyphen156.tistory.com)
-- [#4 유튜브 연동](https://cyphen156.tistory.com)
-- [#5 스트림 안정화](https://cyphen156.tistory.com)
-- [#6 플레이리스트 저장 & 암호화](https://cyphen156.tistory.com)
-- [#7 Azure VM 배포](https://cyphen156.tistory.com)
+- [#1 봇 생성하기](https://cyphen156.tistory.com/405)
+- [#2 봇 활성화 및 코드 적용](https://cyphen156.tistory.com/406)
+- [#3 명령어 배포](https://cyphen156.tistory.com/408)
+- [#4 유튜브 연동](https://cyphen156.tistory.com/410)
+- [#5 스트림 안정화](https://cyphen156.tistory.com/413)
+- [#6 플레이리스트 저장 & 암호화](https://cyphen156.tistory.com/431)
+- [#7 Azure VM 배포](https://cyphen156.tistory.com/432)
 
 > 포트폴리오 소개 : [[Node.js] 디스코드 주크박스 봇](https://cyphen156.tistory.com/464)

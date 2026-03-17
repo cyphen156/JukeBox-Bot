@@ -132,6 +132,61 @@ storage/data/
 
 ---
 
+## 프로젝트 구조
+ 
+```
+JukeBox-Bot/
+├─ bin/yt-dlp.exe                  # 음원 다운로더
+├─ commands/                       # 슬래시 커맨드 정의 (입력 파싱 전담)
+│  ├─ play/                        # 주크박스 조작 명령어
+│  │  └─ [pause, play, resume, skip, stop].js
+│  ├─ playlist/
+│  │  └─ playlist.js               # show/info/create/delete 등 플레이리스 서브커맨드 허브
+│  ├─ queue/                       # 주크박스 대기열 조작 명령어
+│  │  └─ [add, clear, queue, remove, show, shuffle].js
+│  └─ utility/
+│  │  └─ [help, join, leave, ping, server, test, user].js # 보조 명령어
+│
+├─ components/                     # 런타임 구성요소 (실행·상태·플레이어)
+│  ├─ youtube/
+│  │  └─ youtube.js                # 검색·URL 해석
+│  ├─ player.js                    # 길드별 AudioPlayer 런타임
+│  ├─ queue.js                     # 길드별 대기열
+│  └─ state.js                     # 길드별 FSM
+│
+├─ services/                       # 비즈니스 로직 (권한/검증/정책/트랜잭션)
+│  └─ playlistService.js           # 플레이리스트 CRUD, 트랙 add/remove 등
+│
+├─ storage/                        # 데이터 저장소
+│  ├─ schema/
+│  │  ├─ document.js               # 문서(JSON) 스키마 검증·정규화·마이그레이션
+│  │  └─ filesystem.js             # 파일 스키마 검증 + JSON 스펙 → 실제 파일 생성기
+│  ├─ crypto.js                    # 암호화 엔진 (AES-GCM 기본, 3DES 옵션)
+│  ├─ storage.js                   # 읽기/쓰기 + 암/복호화 + 락
+│  └─ data/                        # .gitignore 처리 (실제 유저 데이터)
+│     └─ {guildId}/
+│        ├─ catalog.json           # 플레이리스트 조회용 서버별 카탈로그
+│        ├─ logs/{YYYY-MM-DD}.log
+│        └─ {userId}/
+│           └─ playlist.json.enc
+│
+├─ utility/                        # 공통 유틸
+│  ├─ logger.js                    # 로깅 어댑터
+│  ├─ mutex.js                     # 파일 단위 직렬화 (동시 접근 방지)
+│  └─ time.js                      # KST 래핑 모듈
+│
+├─ bot.js                          # 클라이언트·이벤트 바인딩
+├─ config.json                     # 로컬 개발용 설정 (gitignore)
+├─ deploy-commands.js              # 명령어 로컬 배포
+├─ deploy-global.js                # 명령어 전역 배포
+├─ .env                            # 운영 환경 변수 (gitignore)
+├─ index.js                        # 엔트리
+├─ jukebox.js                      # 퍼사드 (components 통합 단일 API)
+└─ package.json
+```
+
+---
+
 ## 트러블슈팅
 
 ### 1. YouTube 오디오 스트림 추출 실패 → 봇 크래시
